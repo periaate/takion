@@ -1,11 +1,11 @@
 [package]
 name = "takion"
-description = "Fast, either at crashing rust-analyzer or at parsing, fast nonetheless."
-version = "0.1.0"
+description = "Experimental type level parser combinator."
+version = "0.1.1"
 edition = "2024"
 license = "MPL-2.0"
-
 repository = "https://github.com/periaate/takion"
-homepage = "https://github.com/periaate/takion"
 
-[dependencies]
+[[example]]
+name = "string-expansion"
+test = true
