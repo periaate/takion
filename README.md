@@ -1,4 +1,7 @@
 # Takion
+[![Crates.io](https://img.shields.io/crates/v/takion)](https://crates.io/crates/takion)
+[![Docs.rs](https://docs.rs/takion/badge.svg)](https://docs.rs/takion)
+
 An experimental type level parser combinator library in rust. *Alternatively, a "combinatory parser" perchance.*
 
 ## Features
