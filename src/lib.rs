@@ -1,6 +1,4 @@
 //! # takion
-//! Type-level parser system in next-generation rust.
-//! The root has what writing and using parsers needs. Everything else stays in its module.
 //! TODO: a prelude, eventually.
 
 #![expect(incomplete_features, reason = "str in const position is experimental/unstable")]
@@ -8,15 +6,8 @@
 #![feature(associated_type_defaults)]
 #![feature(try_trait_v2, try_trait_v2_residual)]
 
-#![expect(unused_parens, reason = "The way we use declarative macros needs this")]
+#![expect(unused_parens, reason = "some declarative macros need unnecessary parens")]
 #![feature(decl_macro)]
-
-// // the current error management is java tiers of 0 signal pure noise boilerplate.
-// // this was an attempt to make it just a bit better. I don't know what the actual
-// // right way is.
-// pub macro wrap($cursor:ident, $($rest:tt)+) {
-//     |e| e.wrap::<$($rest)+>($cursor.index, e.end().unwrap_or($cursor.index))
-// }
 
 pub(crate) use std::fmt::{self, Debug, Display};
 use std::marker::{ConstParamTy, PhantomData};
@@ -31,6 +22,7 @@ mod ret;
 mod macros;
 pub mod error;
 pub mod formatting;
+pub mod prog;
 
 /* Combinators */
 pub mod movement;
@@ -49,7 +41,6 @@ pub mod syntax;
 pub mod primitives;
 
 
-// Inside the crate everything is at the root, for `use crate::*`.
 pub(crate) use {
     cursor::*, ret::*, error::*, formatting::*,
     movement::*, repetitions::*, alternation::*, sequence::*,
@@ -70,10 +61,12 @@ pub use {
     recovery::{Cut, Commit},
     capture::{Span, Skip},
     movement::{Advance, Next, Rest, Null, End, UseAll, Not, Unit},
+    prog::*,
+    expr::*,
     pipe::Pipe,
 
     strings::{Tok, Between, Digit, Letter, Hex, Case, WhiteSpace, Ws, SkipWs, WsTok},
-    strings::{UTF8, Coax, ToCow, Stringify, Unescape, unescape, Map},
+    strings::{UTF8, ToCow, Stringify, Unescape, unescape, Choose},
     syntax::{Ident, QuotedStr, QuotedString, ranges, Ranges},
 
     macros::{pattern::{self, pat, seq}, parser::parser, parser::parse, destruct::destruct},
@@ -81,7 +74,7 @@ pub use {
 pub use Ret::*;
 
 
-/// A parser as a type. Its structure is the grammar.
+/// A parser as a type.
 /// ```
 /// use takion::*;
 ///
@@ -95,7 +88,7 @@ pub trait Parse<'a, T>: Sized + Rule {
     fn parse<Cx: Ctx>(cursor: Cursor<'a, T>) -> Ret<'a, T, Self::Item, Cx>;
 }
 
-/// A parser as a value, for when it has state or has to be passed around.
+/// A parser as a term.
 /// `TypeParser` lowers any `Parse` into one.
 pub trait Parser<'a, T> {
     type Item;

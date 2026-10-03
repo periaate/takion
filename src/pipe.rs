@@ -28,3 +28,10 @@ impl<'a, T: 'a, S: Parse<'a, T>, P: Parse<'a, T>> Parse<'a, T> for Pipe<S, P> {
         }
     }
 }
+
+
+#[test]
+fn pipe() {
+    
+}
+

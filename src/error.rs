@@ -37,10 +37,14 @@ pub struct Nothing;
 
 impl Ctx for () { type Info<'a, T: 'a> = Nothing; }
 impl<'a, T> Info<'a, T> for Nothing {
-    #[inline(always)] fn new<P: Rule>(_: Cur<'a, T>, _: usize) -> Self {Nothing }
+    #[inline(always)] fn new<P: Rule>(_: Cur<'a, T>, _: usize) -> Self { Nothing }
     #[inline(always)] fn wrap<P: Rule>(mut self, _: usize, _: usize) -> Self { Nothing }
 }
 
+/// ```compile_fail
+/// use takion::error::*;
+/// <Traced<0>>::new();
+/// ```
 pub struct Traced<const DEPTH: usize = 5>;
 
 impl<const DEPTH: usize> Ctx for Traced<DEPTH> {
@@ -95,6 +99,8 @@ impl<'a, T, const DEPTH: usize> Info<'a, T> for Frame<'a, T, {DEPTH}> {
     }
 
     fn new<P: Rule>(from: Cur<'a, T>, upto: usize) -> Self {
+        const { if DEPTH == 0 { panic!("Traced must have a Depth >= 1, is 0!"); } };
+
         let mut arr = [None; DEPTH];
         arr[0] = Some(Target((from.index, upto), P::Fmt::fmt_type));
         Frame {

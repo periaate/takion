@@ -19,6 +19,76 @@ impl<const A: &'static str> Rule for Tok<A> {
     type This = Join<(Txt<"\"">, Txt<A>, Txt<"\"">)>;
 }
 
+/// Unordered choice between literals: the longest one that matches wins, so the order
+/// they are listed in never matters. Listing a literal twice (or an empty one) is
+/// ambiguous, and fails to compile.
+/// ```
+/// use takion::*;
+///
+/// type Cmp = Choose<{ &["<", "<<=", "<=", "<<"] }>;
+/// assert_eq!(Cmp::parse::<()>("<<= 1".into()).must(), "<<=");
+/// assert_eq!(Cmp::parse::<()>("<<1".into()).must(),   "<<");
+/// assert_eq!(Cmp::parse::<()>("<=1".into()).must(),   "<=");
+/// assert_eq!(Cmp::parse::<()>("< 1".into()).must(),   "<");
+/// assert!(Cmp::parse::<()>("> 1".into()).is_miss());
+/// ```
+pub struct Choose<const CHOICES: &'static [&'static str]>;
+
+/// Evaluated at compile time for every `Choose`: panics if two choices are the same.
+const fn unambiguous(choices: &[&str]) {
+    let mut i = 0;
+    while i < choices.len() {
+        assert!(!choices[i].is_empty(), "Choose: an empty literal matches everywhere");
+        let mut j = i + 1;
+        while j < choices.len() {
+            assert!(!same(choices[i].as_bytes(), choices[j].as_bytes()), "Choose: a literal is listed twice");
+            j += 1;
+        }
+        i += 1;
+    }
+}
+
+const fn same(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() { return false }
+    let mut i = 0;
+    while i < a.len() {
+        if a[i] != b[i] { return false }
+        i += 1;
+    }
+    true
+}
+
+impl<const C: &'static [&'static str]> Rule for Choose<C> { type This = Self; }
+
+impl<const C: &'static [&'static str]> FormatType for Choose<C> {
+    fn fmt_type(f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("${")?;
+        for (i, choice) in C.iter().enumerate() {
+            if i > 0 { f.write_str(" | ")? }
+            write!(f, "\"{choice}\"")?;
+        }
+        f.write_str("}")
+    }
+}
+
+impl<'a, const C: &'static [&'static str]> Parse<'a, u8> for Choose<C> {
+    type Item = &'static str;
+
+    #[inline]
+    fn parse<Cx: Ctx>(cursor: Cursor<'a, u8>) -> Ret<'a, u8, Self::Item, Cx> {
+        const { unambiguous(C) }
+        let rest = cursor.rest();
+        let longest = C.iter().copied()
+            .filter(|choice| rest.starts_with(choice.as_bytes()))
+            .max_by_key(|choice| choice.len());
+
+        match longest {
+            Some(choice) => Pass(cursor.advance(choice.len()), choice),
+            None => Miss(Cx::Info::new::<Self>(cursor, cursor.index)),
+        }
+    }
+}
+
 /// Between is the inclusive range (similar to regex) between some two charaters.
 /// E.g., `Digit` is defined as: `pub type Digit = Between<b'0', b'9'>;`
 /// ```rs

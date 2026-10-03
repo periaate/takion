@@ -236,7 +236,7 @@ impl<Unit> Range<Unit> {
 
 
 
-/// `Vec<P>` is one-or-more repetition (a Kleene plus) — it requires at least one match.
+/// `Vec<P>` finds one or more `P` -- `P+`. For zero-or-more `P` (`P*`): `Option<Vec<P>>`.
 /// ```
 /// use takion::*;
 ///
@@ -260,14 +260,6 @@ impl<T: Rule> Rule for Vec<T> {
     type Fmt = Join<(Self::This, Self::Mod)>;
 }
 
-// // next() -> Iterate: parser.step(self.cursor);
-// // ManyUntil: {
-// //     if let SubRet::Pass(new, _) = self.until.step(cursor).map_err(wrap!())? {
-// //         Pass(if self.inclusive {new} else {cursor}, None)
-// //     };
-// //     self.during.step(cursor).map_err(wrap!()).map(Option::Some)
-// // }
-// pub struct ManyUntil<Cond, Else> { until: Cond, during: Else, inclusive: bool }
 
 #[test]
 fn rep_new() {
