@@ -12,6 +12,36 @@ parser! {[bool] {
     ("false") => { false };
 }}
 
+/// One UTF-8 encoded `char`. Bytes that don't start a valid one are a `Miss`.
+/// ```
+/// use takion::*;
+///
+/// assert_eq!(char::parse::<()>("é!".into()).must(), 'é');
+/// assert_eq!(<(char, char)>::parse::<()>("月子".into()).must(), ('月', '子'));
+/// assert!(char::parse::<()>("".into()).is_miss());
+/// assert!(char::parse::<()>(b"\xFF".as_slice().into()).is_miss());
+/// ```
+impl Rule for char { type This = Txt<"char">; }
+
+impl<'a> Parse<'a, u8> for char {
+    type Item = char;
+
+    #[inline]
+    fn parse<Cx: Ctx>(cursor: Cursor<'a, u8>) -> Ret<'a, u8, Self::Item, Cx> {
+        let rest  = cursor.rest();
+        let width = match rest.first() {
+            Some(0x00..=0x7F) => 1,
+            Some(0xC0..=0xDF) => 2,
+            Some(0xE0..=0xEF) => 3,
+            Some(0xF0..=0xF7) => 4,
+            _                 => return Miss(Cx::Info::new::<Self>(cursor, cursor.index)),
+        };
+        let decoded = rest.get(..width).and_then(|b| str::from_utf8(b).ok()).and_then(|s| s.chars().next());
+        let Some(c) = decoded else { return Miss(Cx::Info::new::<Self>(cursor, cursor.index)) };
+        Pass(cursor.advance(width), c)
+    }
+}
+
 macro impl_num($( [$parser:ident] { $($ty:ident),* $(,)? } )* ) {$( $(
     impl Rule for $ty {
         // type This = Txt<{ stringify!($ty) }>;

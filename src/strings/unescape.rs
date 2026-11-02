@@ -3,7 +3,12 @@
 use super::*;
 use std::borrow::Cow;
 
-/// `\n`, `\r`, `\t`, `\0`, `\\`, `\"`, `\'`, and any other `\x` as `x`.
+/// `\n`, `\r`, `\t`, `\0`, `\\`, `\"`, `\'`, and any other `\x` as `x`, whole `char`s included.
+/// ```
+/// use takion::*;
+///
+/// assert_eq!(<Unescape<unescape::Basic>>::parse::<()>(r"\é\q".into()).must(), "éq");
+/// ```
 pub struct Basic;
 
 parser! { [Basic] -> [char] {
@@ -15,9 +20,7 @@ parser! { [Basic] -> [char] {
     ("\\\"") => '\"';
     ("\\\'") => '\'';
 
-    (_: Tok<"\\">, c: Unit) => c as char;
-    // TODO: add `char` impl that parses the next char, not just u8.
-    // (_: Tok<"\\">, c: char) => c as char;
+    (_: Tok<"\\">, c: char) => c;
 }}
 
 /// `\u0041` and `\u{41}`.
